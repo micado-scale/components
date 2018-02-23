@@ -1,5 +1,9 @@
 # MiCADO components
 
+## alert_generator
+
+Deprecated since MiCADO 0.3.1.
+
 ## Versions:
 - alert_generator v1.0
 - haproxy-consulemplate v1.0
