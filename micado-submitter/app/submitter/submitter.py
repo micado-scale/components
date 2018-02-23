@@ -50,27 +50,39 @@ with open(infra_def_file, 'w') as ofile:
    yaml.round_trip_dump(temp_infra_def, ofile)
 
 worker_infra_name = os.getenv('WORKER_INFRA_NAME', "micado_worker_infra")
+occopus_address = os.getenv('OCCOPUS_ADDRESS', "occopus")
 
 clinet = docker.from_env()
-run = False
+created = False
 i = 0
-while not run and i < 5:
+while not created and i < 5:
     try:
-        run = True
+        created = True
         occopus = clinet.containers.get('occopus')
     except docker.errors.NotFound:
-        run = False
+        created = False
         i += 1
-        print("Occopus not running. Try {0} of 5.".format(i))
+        print("Occopus is not created. Try {0} of 5.".format(i))
         time.sleep(5)
 
-if run:
-    result = occopus.exec_run("occopus-import {0}".format(node_def_file))
+if created:
+    run = False
+    i = 0
+    while not run and i < 5:
+        try:
+            run = True
+            result = occopus.exec_run("occopus-import {0}".format(node_def_file))
+        except docker.errors.APIError:
+            run = False
+            i += 1
+            print("Occopus is not running. Try {0} of 5.".format(i))
+            time.sleep(5)
+
     print(result)
     if "Successfully imported" in result:
         print(occopus.exec_run("occopus-build --auth_data_path {0} -i {1} {2}".format(auth_data_file, worker_infra_name, infra_def_file)))
-        print(requests.post("http://occopus:5000/infrastructures/{0}/attach".format(worker_infra_name)))
+        print(requests.post("http://{0}:5000/infrastructures/{1}/attach".format(occopus_address, worker_infra_name)))
     else:
         print("Occopus import was unsuccessful!")
 else:
-    print ("Occopus not running!")
+    print ("Occopus is not created!")
